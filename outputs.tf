@@ -32,3 +32,8 @@ output "secret_id" {
   value       = google_secret_manager_secret.db_pass_secret.id
   description = "O ID do segredo criado no Secret Manager para a senha do banco"
 }
+
+output "artifact_registry_repo_url" {
+  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.api_repo.repository_id}"
+  description = "A URL do repositorio no Artifact Registry para fazer o push da imagem Docker"
+}
