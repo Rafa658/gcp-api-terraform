@@ -1,5 +1,6 @@
 variable "project_id" {
   type        = string
+  default     = "gen-lang-client-0609880492" # Define o ID fixo do seu projeto GCP
   description = "O ID do projeto na GCP onde a infraestrutura será criada"
 }
 
