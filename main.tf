@@ -181,3 +181,81 @@ resource "google_artifact_registry_repository" "api_repo" {
 
   depends_on = [google_project_service.artifactregistry_api]
 }
+
+# Ativa a API do Cloud Run
+resource "google_project_service" "run_api" {
+  service            = "run.googleapis.com"
+  disable_on_destroy = false
+}
+
+# 1. Cria uma Service Account dedicada para a API rodar
+resource "google_service_account" "run_sa" {
+  account_id   = "cr-api-sa-${var.environment}"
+  display_name = "Service Account para a API no Cloud Run"
+}
+
+# 2. Garante permissão para a Service Account ler segredos no Secret Manager
+resource "google_secret_manager_secret_iam_member" "secret_access" {
+  secret_id = google_secret_manager_secret.db_pass_secret.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
+# 3. Cria o serviço do Cloud Run v2
+resource "google_cloud_run_v2_service" "api_service" {
+  name     = "api-service-${var.environment}"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_ALL" # Permite tráfego vindo da internet pública
+
+  template {
+    service_account = google_service_account.run_sa.email
+
+    # Acopla o conector VPC para roteamento privado
+    vpc_access {
+      connector = google_vpc_access_connector.connector.id
+      egress    = "ALL_TRAFFIC"
+    }
+
+    containers {
+      image = "gcr.io/cloudrun/hello" # Imagem de bootstrap padrão do Google
+
+      # Variáveis de ambiente comuns
+      env {
+        name  = "DB_HOST"
+        value = google_sql_database_instance.db_instance.private_ip_address
+      }
+      env {
+        name  = "DB_USER"
+        value = google_sql_user.db_user.name
+      }
+      env {
+        name  = "DB_NAME"
+        value = google_sql_database.database.name
+      }
+
+      # Injeção segura de segredo vindo do Secret Manager
+      env {
+        name = "DB_PASS"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.db_pass_secret.secret_id
+            version = "latest"
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    google_project_service.run_api,
+    google_secret_manager_secret_iam_member.secret_access
+  ]
+}
+
+# 4. Torna o endpoint do Cloud Run público (Acesso anônimo na internet)
+resource "google_cloud_run_v2_service_iam_member" "allow_public" {
+  name     = google_cloud_run_v2_service.api_service.name
+  location = google_cloud_run_v2_service.api_service.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}

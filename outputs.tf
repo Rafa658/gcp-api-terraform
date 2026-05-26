@@ -37,3 +37,8 @@ output "artifact_registry_repo_url" {
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.api_repo.repository_id}"
   description = "A URL do repositorio no Artifact Registry para fazer o push da imagem Docker"
 }
+
+output "api_url" {
+  value       = google_cloud_run_v2_service.api_service.uri
+  description = "A URL publica gerada para acessar a API em producao"
+}
