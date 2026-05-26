@@ -27,3 +27,8 @@ output "db_private_ip" {
   value       = google_sql_database_instance.db_instance.private_ip_address
   description = "O endereço IP privado alocado para o banco de dados"
 }
+
+output "secret_id" {
+  value       = google_secret_manager_secret.db_pass_secret.id
+  description = "O ID do segredo criado no Secret Manager para a senha do banco"
+}
