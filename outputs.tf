@@ -39,6 +39,6 @@ output "artifact_registry_repo_url" {
 }
 
 output "api_url" {
-  value       = google_cloud_run_v2_service.api_service.uri
+  value       = module.cloud_run_api.api_url
   description = "A URL publica gerada para acessar a API em producao"
 }

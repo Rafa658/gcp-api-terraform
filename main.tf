@@ -35,6 +35,19 @@ module "network" {
   region      = var.region
 }
 
+# CHAMADA DO NOVO MÓDULO DE COMPUTAÇÃO
+module "cloud_run_api" {
+  source           = "./modules/cloud_run" # Caminho para a nova pasta
+  project_id       = var.project_id
+  environment      = var.environment
+  region           = var.region
+  vpc_connector_id = module.network.connector_id
+  db_host          = google_sql_database_instance.db_instance.private_ip_address
+  db_user          = google_sql_user.db_user.name
+  db_name          = google_sql_database.database.name
+  secret_id        = google_secret_manager_secret.db_pass_secret.secret_id
+}
+
 resource "google_project_service" "sqladmin_api" {
   service            = "sqladmin.googleapis.com"
   disable_on_destroy = false
@@ -145,51 +158,4 @@ resource "google_artifact_registry_repository" "api_repo" {
 resource "google_project_service" "run_api" {
   service            = "run.googleapis.com"
   disable_on_destroy = false
-}
-
-# 1. Cria uma Service Account dedicada para a API rodar
-resource "google_service_account" "run_sa" {
-  account_id   = "cr-api-sa-${var.environment}"
-  display_name = "Service Account para a API no Cloud Run"
-}
-
-# 2. Garante permissão para a Service Account ler segredos no Secret Manager
-resource "google_secret_manager_secret_iam_member" "secret_access" {
-  secret_id = google_secret_manager_secret.db_pass_secret.id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.run_sa.email}"
-}
-
-# 3. Cria o serviço do Cloud Run v2
-resource "google_cloud_run_v2_service" "api_service" {
-  name     = "api-service-${var.environment}"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    service_account = google_service_account.run_sa.email
-
-    vpc_access {
-      connector = module.network.connector_id # Mapeado para o ID do conector vindo do módulo
-      egress    = "ALL_TRAFFIC"
-    }
-
-    containers {
-      image = "gcr.io/cloudrun/hello"
-
-      env {
-        name  = "DB_HOST"
-        value = google_sql_database_instance.db_instance.private_ip_address
-      }
-      # (... Resto das variáveis de ambiente e configurações permanecem iguais)
-    }
-  }
-}
-
-# 4. Torna o endpoint do Cloud Run público (Acesso anônimo na internet)
-resource "google_cloud_run_v2_service_iam_member" "allow_public" {
-  name     = google_cloud_run_v2_service.api_service.name
-  location = google_cloud_run_v2_service.api_service.location
-  role     = "roles/run.invoker"
-  member   = "allUsers"
 }
