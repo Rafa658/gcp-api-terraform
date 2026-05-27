@@ -9,12 +9,12 @@ output "environment" {
 }
 
 output "network_name" {
-  value       = google_compute_network.vpc.name
-  description = "O nome da VPC criada"
+  value       = module.network.network_name
+  description = "O nome da VPC criada e gerenciada pelo modulo local"
 }
 
 output "vpc_connector_name" {
-  value       = google_vpc_access_connector.connector.name
+  value       = module.network.connector_name
   description = "O nome do Serverless VPC Access Connector"
 }
 
