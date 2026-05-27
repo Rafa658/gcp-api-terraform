@@ -105,6 +105,7 @@ resource "google_sql_database_instance" "db_instance" {
   name             = "db-${var.environment}"
   database_version = "POSTGRES_15"
   region           = var.region
+  deletion_protection = false
 
   settings {
     tier = "db-f1-micro" # Instância mais barata, ideal para desenvolvimento/laboratório
