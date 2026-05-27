@@ -37,75 +37,27 @@ module "network" {
 
 # CHAMADA DO NOVO MÓDULO DE COMPUTAÇÃO
 module "cloud_run_api" {
-  source           = "./modules/cloud_run" # Caminho para a nova pasta
+  source           = "./modules/cloud_run"
   project_id       = var.project_id
   environment      = var.environment
   region           = var.region
   vpc_connector_id = module.network.connector_id
-  db_host          = google_sql_database_instance.db_instance.private_ip_address
-  db_user          = google_sql_user.db_user.name
-  db_name          = google_sql_database.database.name
+  
+  # Capturando dados dinamicamente a partir dos outputs do módulo DB:
+  db_host          = module.db.db_private_ip
+  db_user          = module.db.db_user
+  db_name          = module.db.db_name
+  
   secret_id        = google_secret_manager_secret.db_pass_secret.secret_id
 }
 
-resource "google_project_service" "sqladmin_api" {
-  service            = "sqladmin.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "servicenetworking_api" {
-  service            = "servicenetworking.googleapis.com"
-  disable_on_destroy = false
-}
-
-resource "google_compute_global_address" "private_ip_alloc" {
-  name          = "private-ip-alloc-${var.environment}"
-  purpose       = "VPC_PEERING"
-  address_type  = "INTERNAL"
-  prefix_length = 16
-  network       = module.network.network_id # Lendo o ID vindo de dentro do módulo
-  depends_on    = [google_project_service.servicenetworking_api]
-}
-
-resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = module.network.network_id # Lendo o ID vindo do módulo
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_alloc.name]
-}
-
-resource "google_sql_database_instance" "db_instance" {
-  name                = "db-${var.environment}"
-  database_version    = "POSTGRES_15"
-  region              = var.region
-  deletion_protection = false
-
-  settings {
-    tier = "db-f1-micro"
-
-    ip_configuration {
-      ipv4_enabled                                  = false
-      private_network                               = module.network.network_id # Lendo o ID vindo do módulo
-      enable_private_path_for_google_cloud_services = true
-    }
-  }
-
-  depends_on = [
-    google_service_networking_connection.private_vpc_connection,
-    google_project_service.sqladmin_api
-  ]
-}
-
-# 4. Cria o Banco de Dados lógico dentro da instância
-resource "google_sql_database" "database" {
-  name     = "api_db"
-  instance = google_sql_database_instance.db_instance.name
-}
-
-# 5. Cria o Usuário do Banco de Dados
-resource "google_sql_user" "db_user" {
-  name     = "api_user"
-  instance = google_sql_database_instance.db_instance.name
-  password = random_password.db_password.result # String temporária
+module "db" {
+  source      = "./modules/db"
+  project_id  = var.project_id
+  environment = var.environment
+  region      = var.region
+  network_id  = module.network.network_id
+  db_password = random_password.db_password.result # Passando a senha gerada na raiz
 }
 
 # Ativa a API do Secret Manager
