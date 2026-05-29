@@ -29,7 +29,7 @@ provider "google" {
 }
 
 module "network" {
-  source      = "./modules/network" # Caminho relativo para a pasta do módulo
+  source      = "../../modules/network" # Caminho relativo para a pasta do módulo
   project_id  = var.project_id
   environment = var.environment
   region      = var.region
@@ -37,7 +37,7 @@ module "network" {
 
 # CHAMADA DO NOVO MÓDULO DE COMPUTAÇÃO
 module "cloud_run_api" {
-  source           = "./modules/cloud_run"
+  source           = "../../modules/cloud_run"
   project_id       = var.project_id
   environment      = var.environment
   region           = var.region
@@ -52,7 +52,7 @@ module "cloud_run_api" {
 }
 
 module "db" {
-  source      = "./modules/db"
+  source      = "../../modules/db"
   project_id  = var.project_id
   environment = var.environment
   region      = var.region
@@ -61,7 +61,7 @@ module "db" {
 }
 
 module "artifact_registry" {
-  source      = "./modules/artifact_registry"
+  source      = "../../modules/artifact_registry"
   project_id  = var.project_id
   environment = var.environment
   region      = var.region
@@ -70,7 +70,7 @@ module "artifact_registry" {
 }
 
 module "secret_manager" {
-  source      = "./modules/secret_manager"
+  source      = "../../modules/secret_manager"
 
   project_id  = var.project_id
   environment = var.environment
