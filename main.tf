@@ -105,9 +105,3 @@ resource "google_artifact_registry_repository" "api_repo" {
 
   depends_on = [google_project_service.artifactregistry_api]
 }
-
-# Ativa a API do Cloud Run
-resource "google_project_service" "run_api" {
-  service            = "run.googleapis.com"
-  disable_on_destroy = false
-}
