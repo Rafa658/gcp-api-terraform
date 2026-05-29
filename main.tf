@@ -48,7 +48,7 @@ module "cloud_run_api" {
   db_user          = module.db.db_user
   db_name          = module.db.db_name
   
-  secret_id        = google_secret_manager_secret.db_pass_secret.secret_id
+  secret_id        = module.secret_manager.secret_id # Passando o ID do segredo para o Cloud Run acessar a senha do DB
 }
 
 module "db" {
@@ -57,7 +57,7 @@ module "db" {
   environment = var.environment
   region      = var.region
   network_id  = module.network.network_id
-  db_password = random_password.db_password.result # Passando a senha gerada na raiz
+  db_password = module.secret_manager.db_password # Passando a senha gerada no módulo de secret manager
 }
 
 module "artifact_registry" {
@@ -69,32 +69,9 @@ module "artifact_registry" {
   repo_url    = module.artifact_registry.artifact_registry_repo_url
 }
 
-# Ativa a API do Secret Manager
-resource "google_project_service" "secretmanager_api" {
-  service            = "secretmanager.googleapis.com"
-  disable_on_destroy = false
-}
+module "secret_manager" {
+  source      = "./modules/secret_manager"
 
-# Gera uma senha randômica forte de 16 caracteres
-resource "random_password" "db_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-# Cria o "container" do segredo no Secret Manager
-resource "google_secret_manager_secret" "db_pass_secret" {
-  secret_id = "db-password-${var.environment}"
-  
-  replication {
-    auto {} # Replica o segredo automaticamente de forma global/regionalizada pela GCP
-  }
-
-  depends_on = [google_project_service.secretmanager_api]
-}
-
-# Insere a senha gerada como a Versão 1 desse segredo
-resource "google_secret_manager_secret_version" "db_pass_version" {
-  secret      = google_secret_manager_secret.db_pass_secret.id
-  secret_data = random_password.db_password.result
+  project_id  = var.project_id
+  environment = var.environment
 }

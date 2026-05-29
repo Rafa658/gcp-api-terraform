@@ -29,7 +29,7 @@ output "db_private_ip" {
 }
 
 output "secret_id" {
-  value       = google_secret_manager_secret.db_pass_secret.id
+  value       = module.secret_manager.secret_id
   description = "O ID do segredo criado no Secret Manager para a senha do banco"
 }
 
