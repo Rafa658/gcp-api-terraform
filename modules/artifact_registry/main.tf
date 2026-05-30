@@ -2,7 +2,7 @@
 resource "google_project_service" "artifactregistry_api" {
   service            = "artifactregistry.googleapis.com"
   disable_on_destroy = false
-} 
+}
 
 # Cria o repositório do Artifact Registry para armazenar as imagens Docker da API
 resource "google_artifact_registry_repository" "api_repo" {

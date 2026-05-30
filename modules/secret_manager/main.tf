@@ -14,7 +14,7 @@ resource "random_password" "db_password" {
 # Cria o "container" do segredo no Secret Manager
 resource "google_secret_manager_secret" "db_pass_secret" {
   secret_id = "db-password-${var.environment}"
-  
+
   replication {
     auto {} # Replica o segredo automaticamente de forma global/regionalizada pela GCP
   }
